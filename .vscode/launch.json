@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Domain Agent",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/domain_agent.py",
+            "console": "integratedTerminal",
+            "args": ["--topic", "Deep Learning"]
+        },
+        {
+            "name": "Debug Agent Pipeline",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/research_agent.py",
+            "console": "integratedTerminal",
+            "args": ["--test", "--topic", "Quantum Physics"]
+        },
+        {
+            "name": "Jupyter: Test Agents",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/notebooks/test_agents.ipynb",
+            "console": "integratedTerminal"
+        }
+    ]
+}

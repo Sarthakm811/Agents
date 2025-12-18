@@ -1,0 +1,21 @@
+# Core Agent Frameworks
+langchain>=0.1.0
+langchain-community>=0.0.10
+langgraph>=0.0.10
+
+# Optional: Choose ONE framework
+# autogen>=0.2.0  # Microsoft AutoGen
+# crewai>=0.1.0   # CrewAI
+
+# Academic Tools
+arxiv>=2.0.0
+pymed>=0.8.0
+semanticscholar>=0.5.0
+requests>=2.31.0
+
+# Local LLM Option
+ollama>=0.1.0  # For free local models
+
+# Utilities
+python-dotenv>=1.0.0
+tqdm>=4.65.0
