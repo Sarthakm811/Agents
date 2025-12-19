@@ -20,8 +20,7 @@ load_dotenv()
 # Add parent directory to path to import from src
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.core.hybrid_system import HybridResearchSystem, ResearchTopic
-from src.agents.swarm import AgenticResearchSwarm, ResearchTopic as SwarmResearchTopic
+from src.agents.swarm import AgenticResearchSwarm, ResearchTopic as SwarmResearchTopic, ResearchTopic
 from src.authorship.paper_builder import PaperBuilder, BibTeXEntry
 from backend.tasks import BackgroundTaskManager, TaskStatus, StageStatus
 
@@ -125,22 +124,6 @@ async def create_session(config: ResearchConfigRequest):
     """Create a new research session"""
     session_id = f"session-{len(sessions) + 1}-{int(datetime.now().timestamp())}"
     
-    # Create research topic
-    topic = ResearchTopic(
-        title=config.topic.title,
-        domain=config.topic.domain,
-        keywords=config.topic.keywords,
-        complexity=config.topic.complexity,
-        constraints=config.topic.constraints
-    )
-    
-    # Initialize the hybrid research system
-    research_system = HybridResearchSystem(
-        research_topic=topic,
-        author_name=config.authorName,
-        author_institution=config.authorInstitution
-    )
-    
     # Create session data
     session_data = {
         "id": session_id,
@@ -173,20 +156,17 @@ async def create_session(config: ResearchConfigRequest):
         ],
         "createdAt": datetime.now().isoformat(),
         "updatedAt": datetime.now().isoformat(),
-        "research_system": research_system
     }
     
     sessions[session_id] = session_data
     
-    # Return without the research_system object
-    response_data = {k: v for k, v in session_data.items() if k != "research_system"}
-    return response_data
+    return session_data
 
 @app.get("/api/sessions", response_model=List[SessionResponse])
 async def list_sessions():
     """List all research sessions"""
     return [
-        {k: v for k, v in session.items() if k != "research_system"}
+        {k: v for k, v in session.items() if k != "paper_content"}
         for session in sessions.values()
     ]
 
@@ -214,7 +194,7 @@ async def get_session(session_id: str):
         elif task_state.status == TaskStatus.COMPLETED and session["status"] != "completed":
             session["status"] = "completed"
     
-    return {k: v for k, v in session.items() if k not in ["research_system", "paper_content"]}
+    return {k: v for k, v in session.items() if k != "paper_content"}
 
 @app.post("/api/sessions/{session_id}/start", response_model=SessionResponse)
 async def start_session(session_id: str):
@@ -371,7 +351,7 @@ async def start_session(session_id: str):
         on_error=on_error
     )
     
-    return {k: v for k, v in session.items() if k not in ["research_system", "paper_content"]}
+    return {k: v for k, v in session.items() if k != "paper_content"}
 
 @app.post("/api/sessions/{session_id}/pause", response_model=SessionResponse)
 async def pause_session(session_id: str):
@@ -383,7 +363,7 @@ async def pause_session(session_id: str):
     session["status"] = "paused"
     session["updatedAt"] = datetime.now().isoformat()
     
-    return {k: v for k, v in session.items() if k != "research_system"}
+    return session
 
 @app.post("/api/sessions/{session_id}/stop", response_model=SessionResponse)
 async def stop_session(session_id: str):
@@ -407,7 +387,7 @@ async def stop_session(session_id: str):
     session["metrics"]["activeAgents"] = 0
     session["updatedAt"] = datetime.now().isoformat()
     
-    return {k: v for k, v in session.items() if k not in ["research_system", "paper_content"]}
+    return {k: v for k, v in session.items() if k != "paper_content"}
 
 @app.get("/api/sessions/{session_id}/results")
 async def get_results(session_id: str):
