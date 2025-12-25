@@ -10,7 +10,7 @@ export function useResearchSessions() {
 }
 
 // Default polling interval in milliseconds
-const POLLING_INTERVAL = 3000;
+const POLLING_INTERVAL = 5000;
 
 // Terminal statuses that should stop polling
 const TERMINAL_STATUSES: ResearchSession[ 'status' ][] = [ 'completed', 'failed' ];

@@ -154,8 +154,8 @@ class OpenAIProvider(BaseLLMProvider):
         messages.append({"role": "user", "content": prompt})
         
         # Retry logic for rate limits
-        max_retries = 5
-        base_delay = 10  # seconds
+        max_retries = 3
+        base_delay = 2  # seconds
         
         for attempt in range(max_retries):
             try:

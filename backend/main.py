@@ -148,11 +148,11 @@ async def create_session(config: ResearchConfigRequest):
             "apiCalls": 0,
         },
         "agents": [
-            {"id": "agent-1", "name": "Literature Agent", "type": "research", "status": "idle", "tasksCompleted": 0},
-            {"id": "agent-2", "name": "Hypothesis Agent", "type": "analysis", "status": "idle", "tasksCompleted": 0},
-            {"id": "agent-3", "name": "Methodology Agent", "type": "design", "status": "idle", "tasksCompleted": 0},
-            {"id": "agent-4", "name": "Data Agent", "type": "processing", "status": "idle", "tasksCompleted": 0},
-            {"id": "agent-5", "name": "Ethics Agent", "type": "governance", "status": "idle", "tasksCompleted": 0},
+            {"id": "agent-1", "name": "Literature Agent", "type": "research", "status": "idle", "tasksCompleted": 0, "currentTask": ""},
+            {"id": "agent-2", "name": "Hypothesis Agent", "type": "analysis", "status": "idle", "tasksCompleted": 0, "currentTask": ""},
+            {"id": "agent-3", "name": "Methodology Agent", "type": "design", "status": "idle", "tasksCompleted": 0, "currentTask": ""},
+            {"id": "agent-4", "name": "Writing Agent", "type": "writing", "status": "idle", "tasksCompleted": 0, "currentTask": ""},
+            {"id": "agent-5", "name": "Ethics Agent", "type": "governance", "status": "idle", "tasksCompleted": 0, "currentTask": ""},
         ],
         "createdAt": datetime.now().isoformat(),
         "updatedAt": datetime.now().isoformat(),
@@ -247,6 +247,14 @@ async def start_session(session_id: str):
             "methodology": 2,
             "writing": 4
         }
+        # Map stage names to agent indices
+        agent_map = {
+            "literature_review": 0,   # Literature Agent
+            "gap_analysis": 1,        # Hypothesis Agent
+            "hypothesis_generation": 1,  # Hypothesis Agent
+            "methodology": 2,         # Methodology Agent
+            "writing": 3              # Writing Agent
+        }
         
         stage_idx = stage_map.get(stage_name)
         if stage_idx is not None and stage_idx < len(sess["stages"]):
@@ -261,6 +269,20 @@ async def start_session(session_id: str):
             # Ensure progress is monotonically increasing
             if progress >= stage["progress"]:
                 stage["progress"] = progress
+
+        # Update corresponding agent status/current task
+        agent_idx = agent_map.get(stage_name)
+        if agent_idx is not None and agent_idx < len(sess["agents"]):
+            agent = sess["agents"][agent_idx]
+            if progress == 0:
+                agent["status"] = "working"
+            elif progress == 100:
+                agent["status"] = "completed"
+                agent["tasksCompleted"] = int(agent.get("tasksCompleted", 0)) + 1
+                agent["currentTask"] = ""
+            else:
+                agent["status"] = "working"
+                agent["currentTask"] = f"{stage_name.replace('_', ' ').title()} — {progress}%"
         
         # Update metrics
         task_state = task_manager.get_task_state(sid)
@@ -293,6 +315,15 @@ async def start_session(session_id: str):
             stage["status"] = "completed"
             stage["progress"] = 100
         
+        # Mark all agents as completed
+        for agent in sess["agents"]:
+            agent["status"] = "completed"
+            agent["currentTask"] = ""
+        # Update tasksCompleted per agent if not already incremented
+        # (keeps existing counts, ensures non-negative)
+        for agent in sess["agents"]:
+            agent["tasksCompleted"] = int(agent.get("tasksCompleted", 0))
+
         # Update metrics
         sess["metrics"]["activeAgents"] = 0
         sess["metrics"]["tasksCompleted"] = len(sess["stages"])
@@ -338,6 +369,11 @@ async def start_session(session_id: str):
         sess["error_message"] = error_message
         sess["updatedAt"] = datetime.now().isoformat()
         sess["metrics"]["activeAgents"] = 0
+        # Mark running agents as failed
+        for agent in sess["agents"]:
+            if agent.get("status") == "working":
+                agent["status"] = "failed"
+                agent["currentTask"] = ""
         
         logger.error(f"Research failed for session {sid}: {error_message}")
     

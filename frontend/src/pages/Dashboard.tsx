@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useOverallMetrics } from '@/hooks/useMetrics';
-import { useResearchSessions } from '@/hooks/useResearchSessions';
+import { useResearchSession, useResearchSessions } from '@/hooks/useResearchSessions';
 import type { AgentActivity } from '@/types';
 
 export function Dashboard() {
@@ -23,7 +23,10 @@ export function Dashboard() {
   const { data: sessions, isLoading: sessionsLoading, error: sessionsError, refetch: refetchSessions } = useResearchSessions();
 
   const latestSession = sessions?.[ 0 ];
-  const sessionMetrics = latestSession?.metrics;
+  const latestSessionId = latestSession?.id ?? '';
+  const { data: sessionDetail } = useResearchSession(latestSessionId);
+
+  const sessionMetrics = sessionDetail?.metrics ?? latestSession?.metrics;
 
   const metricScores = [
     { label: 'Originality', value: sessionMetrics?.originalityScore ?? 94, gradient: 'from-primary/70 via-primary/60 to-primary/40' },
@@ -45,7 +48,8 @@ export function Dashboard() {
     { id: 'ethics', name: 'Ethics Agent', type: 'ethics', status: 'idle', currentTask: 'Standing by', tasksCompleted: 0 },
   ];
 
-  const agentList = (latestSession?.agents ?? defaultAgents).slice(0, 8);
+  const sessionAgents = sessionDetail?.agents ?? latestSession?.agents;
+  const agentList = (sessionAgents ?? defaultAgents).slice(0, 8);
 
   const statusDot = {
     idle: 'bg-muted-foreground/40',
