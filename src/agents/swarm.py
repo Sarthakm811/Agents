@@ -458,7 +458,28 @@ You are writing a RESEARCH PROPOSAL that presents a planned original study based
             keywords_str = ', '.join(keywords[:5])
         else:
             keywords_str = topic.get('domain', 'research')
-        
+
+        paper_type = (context.get('paper_type') or 'proposal').lower()
+        if paper_type == 'review':
+            return f"""Write a structured systematic review abstract (250-350 words) in present/past tense.
+
+Topic: {topic.get('title', 'Research')}
+Domain: {topic.get('domain', '')}
+Keywords to incorporate: {keywords_str}
+
+Include the following elements succinctly:
+Background: Brief context and rationale for the review
+Objectives: Clear review questions and scope
+Methods: Databases searched, time frame, inclusion/exclusion criteria, PRISMA adherence
+Results: Key quantitative/qualitative findings from included studies
+Conclusions: Main takeaways and implications
+
+CRITICAL RULES:
+- Flowing paragraphs with proper transitions
+- No citations [1], [2] in the abstract
+- Present/past tense (review summarizes completed literature)
+"""
+
         return f"""Write a comprehensive research proposal abstract (250-350 words) as flowing paragraphs.
 
 Topic: {topic.get('title', 'Research')}
@@ -476,7 +497,7 @@ CRITICAL RULES:
 - DO NOT include ANY citations [1], [2], etc. in the abstract - IEEE prohibits citations in abstracts
 - The research focus you state here MUST be maintained in ALL other sections
 - Use FUTURE TENSE for proposed work
-- SPELL CHECK: Generative, Field, Artificial, Neural (not Genrative, Feild, etc.)"""
+"""
 
     def _build_citation_reference_block(self, papers: List[Dict[str, Any]], limit: int = 10) -> str:
         """Format a short numbered reference map for prompts."""
@@ -537,6 +558,30 @@ CRITICAL RULES:
         meth_text = methodology.get("full_methodology", str(methodology)) if isinstance(methodology, dict) else str(methodology)
         papers = context.get('papers', [])
         paper_refs = self._build_citation_reference_block(papers, limit=20)
+        paper_type = (context.get('paper_type') or 'proposal').lower()
+        if paper_type == 'review':
+            return f"""Write a systematic review Methods section (2000-2500 words) following PRISMA guidelines.
+
+Topic: {topic.get('title', 'Research')}
+{paper_refs}
+
+Required subsections:
+1. Eligibility Criteria (PICOS: Population, Intervention, Comparison, Outcomes, Study design)
+2. Information Sources (databases: PubMed, Scopus, Web of Science, Semantic Scholar; time frame; language limits)
+3. Search Strategy (full search strings/keywords, Boolean operators)
+4. Selection Process (screening steps, duplicates removal, inclusion/exclusion with reasons)
+5. Data Collection Process (extraction template, variables captured)
+6. Data Items (primary/secondary outcomes, study characteristics)
+7. Study Risk of Bias Assessment (tools used, e.g., RoB-2, Newcastle-Ottawa)
+8. Effect Measures and Synthesis Methods (narrative synthesis or meta-analysis; models, heterogeneity assessment)
+9. Reporting Bias Assessment and Certainty of Evidence (GRADE if applicable)
+
+Rules:
+- Present/past tense
+- Include citations to methodological standards where appropriate [1-3]
+- No participant recruitment or power analysis (this is a review)
+"""
+        
         return f"""Write a comprehensive Methodology section (2500-3000 words, approximately 5 pages) as flowing academic prose with clear subsections.
 
 Topic: {topic.get('title', 'Research')}
@@ -585,6 +630,25 @@ CRITICAL RULES:
     def _get_results_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
         papers = context.get('papers', [])
         paper_refs = self._build_citation_reference_block(papers, limit=20)
+        paper_type = (context.get('paper_type') or 'proposal').lower()
+        if paper_type == 'review':
+            return f"""Write a comprehensive Results/Findings section (2000-2500 words) synthesizing included studies.
+
+Topic: {topic.get('title', 'Research')}
+{paper_refs}
+
+Structure:
+1. Study Selection (numbers screened/included; PRISMA counts)
+2. Study Characteristics (populations, interventions, outcomes, designs)
+3. Risk of Bias (summary of assessments)
+4. Results of Individual Studies (key findings with citations)
+5. Synthesis of Results (narrative or quantitative; heterogeneity, sensitivity)
+
+Rules:
+- Present/past tense; report what was found in the literature
+- No fabricated sample sizes or participant recruitment
+- Use citations to attribute findings [1-20]
+"""
         return f"""Write a comprehensive Results section (2000-2500 words, approximately 4 pages) as flowing academic prose with detailed subsections.
 
 Topic: {topic.get('title', 'Research')}
@@ -627,6 +691,21 @@ CRITICAL RULES:
     def _get_conclusion_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
         papers = context.get('papers', [])
         paper_refs = self._build_citation_reference_block(papers, limit=10)
+        paper_type = (context.get('paper_type') or 'proposal').lower()
+        if paper_type == 'review':
+            return f"""Write a concise Conclusion section (600-800 words) summarizing review findings and implications.
+
+Topic: {topic.get('title', 'Research')}
+{paper_refs}
+
+Include:
+1. Summary of main findings across studies
+2. Strengths and limitations of the evidence base
+3. Practical implications and guidance
+4. Recommendations for future research
+
+Use present/past tense and avoid proposing participant-based procedures.
+"""
         return f"""Write a comprehensive Conclusion section (600-800 words, approximately 1.5 pages) as flowing academic prose.
 
 Topic: {topic.get('title', 'Research')}
@@ -870,6 +949,9 @@ class AgenticResearchSwarm:
         results: Dict[str, Any] = {"topic": topic}
         start_time = time.time()
         
+        # Include paper type from config (review or proposal)
+        results["paper_type"] = config.paper_type.lower() if hasattr(config, "paper_type") else "proposal"
+
         # Stage 1: Literature Review
         lit_agent = LiteratureAgent(llm_client, orchestrator)
         lit_result = await self._execute_agent(

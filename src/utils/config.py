@@ -37,6 +37,7 @@ class APIConfig:
     semantic_scholar_api_key: Optional[str] = None
     llm_provider: str = "openai"
     llm_model: str = "gpt-4"
+    paper_type: str = "proposal"  # "review" or "proposal"
 
 
 class ConfigManager:
@@ -52,6 +53,7 @@ class ConfigManager:
     ENV_SEMANTIC_SCHOLAR_API_KEY = "SEMANTIC_SCHOLAR_API_KEY"
     ENV_LLM_PROVIDER = "LLM_PROVIDER"
     ENV_LLM_MODEL = "LLM_MODEL"
+    ENV_PAPER_TYPE = "PAPER_TYPE"
     
     @staticmethod
     def load_from_env() -> APIConfig:
@@ -67,13 +69,15 @@ class ConfigManager:
         semantic_scholar_key = os.environ.get(ConfigManager.ENV_SEMANTIC_SCHOLAR_API_KEY)
         llm_provider = os.environ.get(ConfigManager.ENV_LLM_PROVIDER, "openai")
         llm_model = os.environ.get(ConfigManager.ENV_LLM_MODEL, "gpt-4")
+        paper_type = os.environ.get(ConfigManager.ENV_PAPER_TYPE, "proposal")
         
         config = APIConfig(
             openai_api_key=openai_key,
             anthropic_api_key=anthropic_key,
             semantic_scholar_api_key=semantic_scholar_key,
             llm_provider=llm_provider,
-            llm_model=llm_model
+            llm_model=llm_model,
+            paper_type=paper_type
         )
         
         return config
