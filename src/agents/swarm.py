@@ -62,8 +62,8 @@ of the current state of research on a given topic."""
         total_tokens = 0
         
         search_query = self._build_search_query(topic)
-        # Pull a comprehensive paper set to support extensive citations for 20-30 page papers
-        papers = await self.orchestrator.search_all_sources(search_query, max_results=20)
+        # Reduce paper set for faster runs while retaining quality
+        papers = await self.orchestrator.search_all_sources(search_query, max_results=12)
         
         if not papers:
             return AgentResult(
@@ -77,7 +77,7 @@ of the current state of research on a given topic."""
         response = await self.llm_client.generate(
             prompt=summary_prompt,
             system_prompt=self.SYSTEM_PROMPT,
-            max_tokens=2500,  # comprehensive literature summary for extensive papers
+            max_tokens=1500,
             temperature=0.5
         )
         total_tokens += response.tokens_used
