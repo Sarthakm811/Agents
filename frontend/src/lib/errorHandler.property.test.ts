@@ -4,7 +4,6 @@ import {
     parseApiError,
     getErrorMessage,
     getRecoveryAction,
-    type ApiError,
     type ErrorType,
 } from './errorHandler';
 

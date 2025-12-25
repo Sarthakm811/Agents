@@ -33,12 +33,16 @@ export function Sessions() {
   if (isError) return <div>Error loading sessions.</div>;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Research Sessions</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage and monitor your active and completed research sessions
-        </p>
+    <div className="space-y-8 p-6">
+      {/* Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute -top-40 right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-40 left-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }}></div>
+      </div>
+
+      <div className="space-y-2 relative">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-gradient">Active Sessions</h1>
+        <p className="text-muted-foreground text-lg">Monitor and manage your ongoing research sessions</p>
       </div>
 
       <Tabs defaultValue="active" className="space-y-4">
@@ -49,9 +53,9 @@ export function Sessions() {
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
-          <Card>
+          <Card className="hover-lift border-2">
             <CardHeader>
-              <CardTitle>Active Research Sessions</CardTitle>
+              <CardTitle className="text-xl">Active Research Sessions</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>

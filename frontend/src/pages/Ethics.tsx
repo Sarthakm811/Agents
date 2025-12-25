@@ -3,7 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle2, AlertTriangle, Info, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Info, AlertCircle, RefreshCw, ShieldCheck, Shield } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAllComplianceReports } from '@/hooks/useCompliance';
 import { parseApiError, getErrorMessage, getRecoveryAction } from '@/lib/errorHandler';
 import type { ComplianceReport, ComplianceCategory } from '@/types';
@@ -139,16 +140,37 @@ export function Ethics() {
   const recentAudits = complianceReports ? reportsToAudits(complianceReports) : [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ethics & Compliance</h1>
-        <p className="text-muted-foreground mt-1">
-          Monitor ethical compliance and governance across all research activities
-        </p>
+    <div className="space-y-6 p-6 relative">
+      {/* Gradient Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-40 right-20 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
       </div>
 
+      {/* Header Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-3 relative"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-gradient">Ethics & Compliance</h1>
+            <p className="text-muted-foreground text-lg">Monitor ethical compliance and governance across all research activities</p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Compliance Categories Section */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ staggerChildren: 0.1 }}
+        className="grid gap-6 md:grid-cols-3"
+      >
         {isLoading ? (
           // Loading state with skeletons
           <>
@@ -189,110 +211,118 @@ export function Ethics() {
           </Card>
         ) : (
           // Data loaded successfully
-          aggregatedCategories.map((category) => (
-            <Card key={category.name}>
-              <CardHeader>
-                <CardTitle className="text-base">{category.name}</CardTitle>
-                <CardDescription>Compliance Score</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-3xl font-bold">{category.score}%</div>
-                    <Badge variant={category.status === 'passed' ? 'secondary' : 'outline'}>
-                      {category.status}
-                    </Badge>
-                  </div>
-                  <Progress value={category.score} className="h-2" />
+          aggregatedCategories.map((category, index) => (
+            <motion.div key={category.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+              <Card className="glow-card h-full">
+                <CardHeader>
+                  <CardTitle className="text-base">{category.name}</CardTitle>
+                  <CardDescription>Compliance Score</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-3xl font-bold">{category.score}%</div>
+                      <Badge variant={category.status === 'passed' ? 'secondary' : 'outline'}>
+                        {category.status}
+                      </Badge>
+                    </div>
+                    <Progress value={category.score} className="h-2" />
 
-                  <div className="space-y-2 pt-2">
-                    {category.checks.map((check) => (
-                      <div key={check.name} className="flex items-center gap-2 text-sm">
-                        {check.status === 'passed' ? (
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                        ) : check.status === 'warning' ? (
-                          <AlertTriangle className="h-4 w-4 text-warning" />
-                        ) : (
-                          <Info className="h-4 w-4 text-info" />
-                        )}
-                        <span className="text-muted-foreground">{check.name}</span>
-                      </div>
-                    ))}
+                    <div className="space-y-2 pt-2">
+                      {category.checks.map((check) => (
+                        <div key={check.name} className="flex items-center gap-2 text-sm">
+                          {check.status === 'passed' ? (
+                            <CheckCircle2 className="h-4 w-4 text-success" />
+                          ) : check.status === 'warning' ? (
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          ) : (
+                            <Info className="h-4 w-4 text-info" />
+                          )}
+                          <span className="text-muted-foreground">{check.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))
         )}
-      </div>
+      </motion.div>
 
 
       {/* Recent Audits Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Ethics Audits</CardTitle>
-          <CardDescription>
-            Compliance reviews for completed research sessions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            // Loading state with skeletons
-            <div className="space-y-4">
-              {[ 1, 2, 3 ].map((i) => (
-                <AuditItemSkeleton key={i} />
-              ))}
-            </div>
-          ) : error ? (
-            // Error state
-            <div className="flex flex-col items-center justify-center py-8">
-              <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-              <p className="text-sm text-muted-foreground mb-4">
-                {apiError ? getErrorMessage(apiError) : 'Failed to load audit data'}
-              </p>
-              {recoveryAction && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetch()}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {recoveryAction.label}
-                </Button>
-              )}
-            </div>
-          ) : recentAudits.length === 0 ? (
-            // Empty state
-            <div className="flex flex-col items-center justify-center py-8">
-              <ShieldCheck className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No ethics audits available. Complete a research session to see compliance reviews here.
-              </p>
-            </div>
-          ) : (
-            // Data loaded successfully
-            <div className="space-y-4">
-              {recentAudits.map((audit) => (
-                <div key={audit.id} className="flex items-center justify-between pb-4 last:pb-0 border-b last:border-0">
-                  <div className="space-y-1">
-                    <p className="font-medium">{audit.session}</p>
-                    <p className="text-sm text-muted-foreground">{audit.date}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Compliance Score</p>
-                      <p className="text-lg font-semibold">{audit.score}%</p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card className="glow-card">
+          <CardHeader>
+            <CardTitle>Recent Ethics Audits</CardTitle>
+            <CardDescription>
+              Compliance reviews for completed research sessions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              // Loading state with skeletons
+              <div className="space-y-4">
+                {[ 1, 2, 3 ].map((i) => (
+                  <AuditItemSkeleton key={i} />
+                ))}
+              </div>
+            ) : error ? (
+              // Error state
+              <div className="flex flex-col items-center justify-center py-8">
+                <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  {apiError ? getErrorMessage(apiError) : 'Failed to load audit data'}
+                </p>
+                {recoveryAction && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetch()}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {recoveryAction.label}
+                  </Button>
+                )}
+              </div>
+            ) : recentAudits.length === 0 ? (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-8">
+                <ShieldCheck className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No ethics audits available. Complete a research session to see compliance reviews here.
+                </p>
+              </div>
+            ) : (
+              // Data loaded successfully
+              <div className="space-y-4">
+                {recentAudits.map((audit) => (
+                  <div key={audit.id} className="flex items-center justify-between pb-4 last:pb-0 border-b last:border-0">
+                    <div className="space-y-1">
+                      <p className="font-medium">{audit.session}</p>
+                      <p className="text-sm text-muted-foreground">{audit.date}</p>
                     </div>
-                    <Badge variant={audit.status === 'approved' ? 'secondary' : 'outline'}>
-                      {audit.status}
-                    </Badge>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Compliance Score</p>
+                        <p className="text-lg font-semibold">{audit.score}%</p>
+                      </div>
+                      <Badge variant={audit.status === 'approved' ? 'secondary' : 'outline'}>
+                        {audit.status}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

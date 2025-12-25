@@ -2,6 +2,7 @@ import type {
   ResearchConfig,
   ResearchSession,
   OverallMetrics,
+  ResearchMetrics,
   UserSettings,
   ComplianceReport
 } from '../types';
@@ -88,8 +89,8 @@ class ApiClient {
   }
 
   // Metrics
-  async getMetrics(sessionId: string): Promise<OverallMetrics> {
-    return this.request<OverallMetrics>(`/metrics/${sessionId}`);
+  async getMetrics(sessionId: string): Promise<ResearchMetrics> {
+    return this.request<ResearchMetrics>(`/metrics/${sessionId}`);
   }
 
   // Ethics & Compliance

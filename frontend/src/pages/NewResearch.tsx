@@ -95,11 +95,12 @@ export function NewResearch() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle>Research Configuration</CardTitle>
-            <CardDescription>
+        <Card className="hover-lift gradient-card border-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl">Research Configuration</CardTitle>
+            <CardDescription className="text-base">
               Provide details about your research topic and parameters
             </CardDescription>
           </CardHeader>
@@ -234,42 +235,48 @@ export function NewResearch() {
         </Card>
       </motion.div>
 
-      <Card className="gradient-bg">
-        <CardHeader>
-          <CardTitle>What happens next?</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                1
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <Card className="gradient-bg">
+          <CardHeader>
+            <CardTitle>What happens next?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                  1
+                </div>
+                <h4 className="font-semibold">Literature Review</h4>
+                <p className="text-sm text-muted-foreground">
+                  AI agents will search and analyze relevant academic papers
+                </p>
               </div>
-              <h4 className="font-semibold">Literature Review</h4>
-              <p className="text-sm text-muted-foreground">
-                AI agents will search and analyze relevant academic papers
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                2
+              <div className="space-y-2">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                  2
+                </div>
+                <h4 className="font-semibold">Research Execution</h4>
+                <p className="text-sm text-muted-foreground">
+                  Automated hypothesis generation, methodology design, and analysis
+                </p>
               </div>
-              <h4 className="font-semibold">Research Execution</h4>
-              <p className="text-sm text-muted-foreground">
-                Automated hypothesis generation, methodology design, and analysis
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                3
+              <div className="space-y-2">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                  3
+                </div>
+                <h4 className="font-semibold">Paper Generation</h4>
+                <p className="text-sm text-muted-foreground">
+                  Complete paper composition with originality and ethics verification
+                </p>
               </div>
-              <h4 className="font-semibold">Paper Generation</h4>
-              <p className="text-sm text-muted-foreground">
-                Complete paper composition with originality and ethics verification
-              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

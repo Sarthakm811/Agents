@@ -102,6 +102,10 @@ class ConfigManager:
         if config.llm_provider == "anthropic" and not config.anthropic_api_key:
             warnings.append("ANTHROPIC_API_KEY is missing but llm_provider is set to 'anthropic'. Anthropic services will be disabled.")
             logger.warning("ANTHROPIC_API_KEY is missing but llm_provider is set to 'anthropic'. Anthropic services will be disabled.")
+
+        if config.llm_provider == "openrouter" and not config.openai_api_key:
+            warnings.append("OPENAI_API_KEY is missing but llm_provider is set to 'openrouter'. OpenRouter services will be disabled.")
+            logger.warning("OPENAI_API_KEY is missing but llm_provider is set to 'openrouter'. OpenRouter services will be disabled.")
         
         # Check optional services
         if not config.semantic_scholar_api_key:
@@ -109,9 +113,9 @@ class ConfigManager:
             logger.warning("SEMANTIC_SCHOLAR_API_KEY is missing. Semantic Scholar API will use unauthenticated access with lower rate limits.")
         
         # Validate llm_provider value
-        if config.llm_provider not in ("openai", "anthropic"):
-            warnings.append(f"Invalid llm_provider '{config.llm_provider}'. Must be 'openai' or 'anthropic'.")
-            logger.warning(f"Invalid llm_provider '{config.llm_provider}'. Must be 'openai' or 'anthropic'.")
+        if config.llm_provider not in ("openai", "anthropic", "openrouter", "ollama"):
+            warnings.append(f"Invalid llm_provider '{config.llm_provider}'. Must be 'openai', 'anthropic', 'openrouter', or 'ollama'.")
+            logger.warning(f"Invalid llm_provider '{config.llm_provider}'. Must be 'openai', 'anthropic', 'openrouter', or 'ollama'.")
         
         return warnings
     

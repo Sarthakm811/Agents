@@ -126,7 +126,7 @@ class OpenAIProvider(BaseLLMProvider):
         max_tokens: int = 2000,
         temperature: float = 0.7
     ) -> LLMResponse:
-        """Generate text using OpenAI API.
+        """Generate text using OpenAI API with retry logic for rate limits.
         
         Parameters
         ----------
@@ -144,6 +144,8 @@ class OpenAIProvider(BaseLLMProvider):
         LLMResponse
             The generated response with token usage.
         """
+        import asyncio
+        
         client = self._get_client()
         
         messages = []
@@ -151,31 +153,49 @@ class OpenAIProvider(BaseLLMProvider):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
-        try:
-            response = await client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
-            
-            content = response.choices[0].message.content or ""
-            usage = response.usage
-            
-            return LLMResponse(
-                content=content,
-                tokens_used=usage.total_tokens if usage else 0,
-                prompt_tokens=usage.prompt_tokens if usage else 0,
-                completion_tokens=usage.completion_tokens if usage else 0,
-                model=self.model
-            )
-        except Exception as e:
-            error_msg = str(e)
-            # Ensure API key is not exposed in error messages
-            if self.api_key and self.api_key in error_msg:
-                error_msg = error_msg.replace(self.api_key, "[REDACTED]")
-            logger.error("OpenAI API error: %s", error_msg)
-            raise LLMAPIError("openai", error_msg)
+        # Retry logic for rate limits
+        max_retries = 5
+        base_delay = 10  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                response = await client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+                
+                content = response.choices[0].message.content or ""
+                usage = response.usage
+                
+                return LLMResponse(
+                    content=content,
+                    tokens_used=usage.total_tokens if usage else 0,
+                    prompt_tokens=usage.prompt_tokens if usage else 0,
+                    completion_tokens=usage.completion_tokens if usage else 0,
+                    model=self.model
+                )
+            except Exception as e:
+                error_msg = str(e).lower()
+                
+                # Check for rate limit errors (429) or timeout
+                if '429' in str(e) or 'rate' in error_msg or 'too many' in error_msg:
+                    if attempt < max_retries - 1:
+                        wait_time = base_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(f"Rate limited. Waiting {wait_time}s before retry {attempt + 2}/{max_retries}")
+                        await asyncio.sleep(wait_time)
+                        continue
+                
+                # For other errors, log and raise
+                if self.api_key and self.api_key in str(e):
+                    error_msg = str(e).replace(self.api_key, "[REDACTED]")
+                else:
+                    error_msg = str(e)
+                logger.error("OpenAI API error: %s", error_msg)
+                raise LLMAPIError("openai", error_msg)
+        
+        raise LLMAPIError("openai", "Max retries exceeded due to rate limiting")
     
     async def generate_structured(
         self,
@@ -470,12 +490,21 @@ class LLMClient:
                 model=model
             )
             logger.info("Initialized Anthropic provider with model: %s", model)
+        
+        elif provider_name == "ollama":
+            # Ollama uses OpenAI-compatible API at localhost
+            self._provider = OpenAIProvider(
+                api_key="ollama",  # Ollama doesn't require a real API key
+                model=model,
+                base_url="http://localhost:11434/v1"
+            )
+            logger.info("Initialized Ollama provider with model: %s", model)
             
         else:
             raise LLMConfigurationError(
                 provider_name,
                 f"Unsupported LLM provider: {provider_name}. "
-                "Supported providers: openai, openrouter, anthropic"
+                "Supported providers: openai, openrouter, anthropic, ollama"
             )
     
     @property

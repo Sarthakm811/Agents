@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Download, FileText, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
 import { useCompletedSessions, useDownloadPaper, useSessionResults } from '@/hooks/useResults';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import type { ResearchSession } from '@/types';
 
@@ -69,82 +70,85 @@ function ResultCard({ session, onViewReport, onDownload, isDownloading, download
   const formattedDate = new Date(createdAt).toLocaleDateString();
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            <CardTitle className="text-xl">{config.topic.title}</CardTitle>
-            <CardDescription>
-              By {config.authorName} • {formattedDate}
-            </CardDescription>
-          </div>
-          <FileText className="h-8 w-8 text-muted-foreground" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Originality Score</p>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold">{metrics.originalityScore}%</div>
-                <Badge variant={getScoreBadge(metrics.originalityScore).variant}>
-                  {getScoreBadge(metrics.originalityScore).label}
-                </Badge>
-              </div>
+    <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true }}>
+      <div className="glow-card border-0 overflow-hidden relative rounded-lg p-6">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/20 to-secondary/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div className="relative">
+          <div className="flex items-start justify-between mb-6">
+            <div className="space-y-2 flex-1">
+              <h3 className="text-2xl font-bold tracking-tight hover:text-primary transition-colors cursor-pointer">{config.topic.title}</h3>
+              <p className="text-sm text-muted-foreground">
+                By <span className="font-semibold text-foreground">{config.authorName}</span> • {formattedDate}
+              </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Novelty Score</p>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold">{metrics.noveltyScore}%</div>
-                <Badge variant={getScoreBadge(metrics.noveltyScore).variant}>
-                  {getScoreBadge(metrics.noveltyScore).label}
-                </Badge>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Ethics Compliance</p>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold">{metrics.ethicsScore}%</div>
-                <Badge variant={getScoreBadge(metrics.ethicsScore).variant}>
-                  {getScoreBadge(metrics.ethicsScore).label}
-                </Badge>
-              </div>
+            <div className="p-3 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20">
+              <FileText className="h-7 w-7 text-primary" />
             </div>
           </div>
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-primary/5 to-transparent">
+                <p className="text-sm text-muted-foreground font-medium">Originality Score</p>
+                <div className="flex items-center gap-2">
+                  <div className="text-3xl font-bold tracking-tight">{metrics.originalityScore}%</div>
+                  <Badge variant={getScoreBadge(metrics.originalityScore).variant} className="text-xs">
+                    {getScoreBadge(metrics.originalityScore).label}
+                  </Badge>
+                </div>
+              </div>
+              <div className="space-y-2 p-4 rounded-lg bg-gradient-to-br from-secondary/5 to-transparent">
+                <p className="text-sm text-muted-foreground font-medium">Novelty Score</p>
+                <div className="flex items-center gap-2">
+                  <div className="text-3xl font-bold tracking-tight">{metrics.noveltyScore}%</div>
+                  <Badge variant={getScoreBadge(metrics.noveltyScore).variant} className="text-xs">
+                    {getScoreBadge(metrics.noveltyScore).label}
+                  </Badge>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Ethics Compliance</p>
+                <div className="flex items-center gap-2">
+                  <div className="text-2xl font-bold">{metrics.ethicsScore}%</div>
+                  <Badge variant={getScoreBadge(metrics.ethicsScore).variant}>
+                    {getScoreBadge(metrics.ethicsScore).label}
+                  </Badge>
+                </div>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2 pt-4 border-t">
-            <Button
-              onClick={() => onDownload(session.id, 'pdf')}
-              disabled={isDownloading}
-            >
-              {isDownloading && downloadingFormat === 'pdf' ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              Download PDF
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => onDownload(session.id, 'latex')}
-              disabled={isDownloading}
-            >
-              {isDownloading && downloadingFormat === 'latex' ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              Download LaTeX
-            </Button>
-            <Button variant="outline" onClick={() => onViewReport(session.id)}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Full Report
-            </Button>
+            <div className="flex items-center gap-2 pt-4 border-t">
+              <Button
+                onClick={() => onDownload(session.id, 'pdf')}
+                disabled={isDownloading}
+              >
+                {isDownloading && downloadingFormat === 'pdf' ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Download PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onDownload(session.id, 'latex')}
+                disabled={isDownloading}
+              >
+                {isDownloading && downloadingFormat === 'latex' ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Download LaTeX
+              </Button>
+              <Button variant="outline" onClick={() => onViewReport(session.id)}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Full Report
+              </Button>
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </motion.div>
   );
 }
 
@@ -277,13 +281,17 @@ export function Results() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Research Results</h1>
-        <p className="text-muted-foreground mt-1">
-          View and download completed research papers
-        </p>
+    <div className="space-y-6 p-6">
+      {/* Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-40 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 right-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
       </div>
+
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2 relative">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-gradient">Research Results</h1>
+        <p className="text-muted-foreground text-lg">View and download completed research papers</p>
+      </motion.div>
 
       {/* Loading State */}
       {isLoading && (

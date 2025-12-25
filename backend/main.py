@@ -45,9 +45,9 @@ sessions: Dict[str, Dict[str, Any]] = {}
 
 # In-memory settings storage
 user_settings: Dict[str, Any] = {
-    "fullName": "",
-    "email": "",
-    "institution": "",
+    "fullName": "Research User",
+    "email": "user@research.institution",
+    "institution": "Research Institution",
     "preferences": {
         "autoStartEthicsReview": True,
         "enablePlagiarismDetection": True,
@@ -471,6 +471,47 @@ async def get_compliance_report(session_id: str):
         ]
     }
 
+@app.get("/api/compliance")
+async def get_all_compliance_reports():
+    """Get compliance reports for all sessions"""
+    compliance_reports = []
+    for session_id, session in sessions.items():
+        # Return compliance reports for all sessions
+        compliance_reports.append({
+            "sessionId": session_id,
+            "complianceScore": 97 if session["status"] == "completed" else 85,
+            "categories": [
+                {
+                    "name": "Data Privacy",
+                    "score": 98 if session["status"] == "completed" else 85,
+                    "status": "passed",
+                    "checks": [
+                        {"name": "GDPR Compliance", "status": "passed"},
+                        {"name": "Data Anonymization", "status": "passed"},
+                    ]
+                },
+                {
+                    "name": "Responsible AI",
+                    "score": 96 if session["status"] == "completed" else 85,
+                    "status": "passed",
+                    "checks": [
+                        {"name": "Bias Detection", "status": "passed"},
+                        {"name": "Fairness Assessment", "status": "passed"},
+                    ]
+                },
+                {
+                    "name": "Research Integrity",
+                    "score": 97 if session["status"] == "completed" else 85,
+                    "status": "passed",
+                    "checks": [
+                        {"name": "Reproducibility", "status": "passed"},
+                        {"name": "Citation Accuracy", "status": "passed"},
+                    ]
+                }
+            ]
+        })
+    return compliance_reports
+
 @app.get("/api/sessions/{session_id}/download")
 async def download_paper(session_id: str, format: str = Query(default="pdf", pattern="^(pdf|latex|bibtex)$")):
     """Download paper in PDF, LaTeX, or BibTeX format.
@@ -891,14 +932,22 @@ In conclusion, this research contributes to the field of {domain}.
 @app.get("/api/settings", response_model=UserSettings)
 async def get_settings():
     """Get current user settings"""
-    return user_settings
+    try:
+        return UserSettings(**user_settings)
+    except Exception as e:
+        logger.error(f"Error getting settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve settings")
 
 @app.post("/api/settings", response_model=UserSettings)
 async def update_settings(settings: UserSettings):
     """Update and persist user settings"""
     global user_settings
-    user_settings = settings.model_dump()
-    return user_settings
+    try:
+        user_settings = settings.model_dump()
+        return UserSettings(**user_settings)
+    except Exception as e:
+        logger.error(f"Error updating settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update settings")
 
 if __name__ == "__main__":
     import uvicorn

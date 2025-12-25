@@ -32,7 +32,7 @@ const stageToAgentMap: Record<string, string> = {
   'Ethics Review': 'Ethics Agent',
 };
 
-export function AgentStatusCard({ agents, stages, sessionStatus }: AgentStatusCardProps) {
+export function AgentStatusCard({ agents, stages }: AgentStatusCardProps) {
   // If we have stages data, use it to show real progress
   if (stages && stages.length > 0) {
     return (
@@ -43,10 +43,10 @@ export function AgentStatusCard({ agents, stages, sessionStatus }: AgentStatusCa
             stage.status === 'running' ? 'working' : 'pending';
 
           return (
-            <div key={stage.id} className="space-y-2">
+            <div key={stage.id} className="space-y-2 p-3 rounded-lg hover:bg-muted/50 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{agentName}</p>
+                  <p className="text-sm font-semibold">{agentName}</p>
                   <p className="text-xs text-muted-foreground">
                     {stage.name}
                   </p>
@@ -57,11 +57,12 @@ export function AgentStatusCard({ agents, stages, sessionStatus }: AgentStatusCa
                       status === 'completed' ? 'secondary' :
                         'outline'
                   }
+                  className={status === 'working' ? 'animate-pulse' : ''}
                 >
                   {status}
                 </Badge>
               </div>
-              <Progress value={stage.progress} className="h-2" />
+              <Progress value={stage.progress} className="h-2.5" />
             </div>
           );
         })}

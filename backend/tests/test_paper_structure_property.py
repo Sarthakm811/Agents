@@ -92,7 +92,7 @@ class TestPaperStructureCompletenessProperty:
         **Feature: ai-research-agents, Property 5: Paper structure completeness**
         **Validates: Requirements 2.5**
         """
-        required = ["abstract", "introduction", "methodology", "results", "conclusion"]
+        required = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion"]
         assert hasattr(WritingAgent, 'REQUIRED_SECTIONS')
         assert set(WritingAgent.REQUIRED_SECTIONS) == set(required)
 

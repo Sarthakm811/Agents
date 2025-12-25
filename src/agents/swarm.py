@@ -62,6 +62,7 @@ of the current state of research on a given topic."""
         total_tokens = 0
         
         search_query = self._build_search_query(topic)
+        # Pull a comprehensive paper set to support extensive citations for 20-30 page papers
         papers = await self.orchestrator.search_all_sources(search_query, max_results=20)
         
         if not papers:
@@ -76,7 +77,7 @@ of the current state of research on a given topic."""
         response = await self.llm_client.generate(
             prompt=summary_prompt,
             system_prompt=self.SYSTEM_PROMPT,
-            max_tokens=2000,
+            max_tokens=2500,  # comprehensive literature summary for extensive papers
             temperature=0.5
         )
         total_tokens += response.tokens_used
@@ -144,7 +145,7 @@ Literature Summary:
 Identify 3-5 specific research gaps and opportunities."""
 
         response = await self.llm_client.generate(
-            prompt=prompt, system_prompt=self.SYSTEM_PROMPT, max_tokens=1500, temperature=0.6
+            prompt=prompt, system_prompt=self.SYSTEM_PROMPT, max_tokens=900, temperature=0.6
         )
         gaps = self._parse_gaps(response.content)
         
@@ -200,7 +201,7 @@ Research Gaps:
 Generate 3-5 novel research hypotheses with rationale and testing approach."""
 
         response = await self.llm_client.generate(
-            prompt=prompt, system_prompt=self.SYSTEM_PROMPT, max_tokens=1500, temperature=0.7
+            prompt=prompt, system_prompt=self.SYSTEM_PROMPT, max_tokens=900, temperature=0.7
         )
         hypotheses = self._parse_hypotheses(response.content)
         
@@ -269,7 +270,7 @@ Design a comprehensive methodology including:
 6. Timeline and Resources"""
 
         response = await self.llm_client.generate(
-            prompt=prompt, system_prompt=self.SYSTEM_PROMPT, max_tokens=2000, temperature=0.5
+            prompt=prompt, system_prompt=self.SYSTEM_PROMPT, max_tokens=1200, temperature=0.5
         )
         methodology = self._parse_methodology(response.content)
         
@@ -332,35 +333,64 @@ class WritingAgent(BaseAgent):
     SYSTEM_PROMPT = """You are an expert academic writer with extensive experience in scholarly publishing.
 You are writing a RESEARCH PROPOSAL that presents a planned original study based on identified gaps in the literature.
 
-CRITICAL FORMATTING GUIDELINES:
-1. TENSE CONSISTENCY:
-   - Use FUTURE TENSE for proposed work ("This study will...", "We propose to...")
-   - Use PRESENT TENSE only for established facts from literature
-   - Do NOT write as if the study has been completed
+=== ABSOLUTE REQUIREMENTS (FAILURE TO FOLLOW = REJECTION) ===
 
-2. STRUCTURE:
-   - Write in coherent paragraphs, NOT bullet points or fragmented sentences
+1. CITATION FORMAT - IEEE STYLE ONLY (NO EXCEPTIONS):
+   - Use ONLY numbered citations: [1], [2], [3], etc.
+   - NEVER EVER use Author-Year format like "(Smith et al., 2020)" or "Smith et al. (2020)"
+   - NEVER include inline references like "Chen et al. showed..." - write "Prior work showed... [1]"
+   - Place citation numbers at sentence end before period: "...as demonstrated previously [1]."
+   - Multiple citations: [1, 2, 3] or [1-3] for consecutive
+   - DO NOT create separate reference lists within sections - there will be ONE list at the end
+   - DO NOT write out author names with years anywhere in the text
+
+2. RESEARCH FOCUS COHERENCE (CRITICAL):
+   - ALL sections must discuss the SAME research topic and methodology
+   - If Abstract mentions "lung lesion segmentation", then Methodology, Results, AND Conclusion must ALL be about lung lesion segmentation
+   - Do NOT introduce new topics (like NLP, report generation) in later sections
+   - The research focus stated in Abstract = focus in Introduction = focus in Methodology = focus in Results = focus in Discussion = focus in Conclusion
+   - Pick ONE specific application domain and stick to it throughout
+
+3. NO PLACEHOLDER TEXT:
+   - NEVER write "[Insert IRB Approval Number]" or similar placeholders
+   - NEVER write "[Insert Figure Here]" or "[Citation Needed]"
+   - Instead write: "IRB approval will be obtained prior to data collection" or "Ethical approval is pending"
+   - If you don't have specific information, write around it naturally
+
+4. TENSE CONSISTENCY:
+   - FUTURE TENSE for all proposed work: "will collect", "will analyze", "will employ"
+   - PRESENT TENSE for facts: "GANs are generative models"
+   - PAST TENSE only for citing completed prior work: "demonstrated [1]"
+
+5. SPELLING - DOUBLE-CHECK THESE:
+   - "Generative" NOT "Genrative"
+   - "Field" NOT "Feild"
+   - "Artificial" NOT "Artifical"
+   - "Neural" NOT "Nueral"
+   - "Algorithm" NOT "Alogrithm"
+   - "Healthcare" NOT "Heathcare"
+
+6. STRUCTURE:
+   - Write in coherent paragraphs, NOT bullet points
    - Each paragraph should have a clear topic sentence
    - Use smooth transitions between paragraphs
    - Avoid repetition between sections
 
-3. CITATION FORMAT:
-   - When referencing literature, use numbered citations like [1], [2], etc.
-   - Place citations at the end of the relevant sentence before the period
-   - Multiple citations: [1, 2, 3] or [1-3] for consecutive
-
-4. FORMATTING:
+4. TEXT FORMATTING:
    - Do NOT include section titles in your output (they will be added separately)
    - Do NOT use markdown formatting (**, ##, etc.)
-   - Write plain academic prose
-   - Use consistent terminology throughout
+   - Write plain academic prose with proper punctuation
+   - Use only standard ASCII characters - avoid special Unicode characters
+   - Spell out abbreviations on first use
 
 5. ACADEMIC VOICE:
    - Formal, objective tone
    - Avoid first person singular ("I") - use "we" or passive voice
    - Be precise and specific, avoid vague language"""
 
-    REQUIRED_SECTIONS = ["abstract", "introduction", "methodology", "results", "conclusion"]
+    # Required sections for comprehensive 20-30 page research proposals
+    # Discussion section is critical for thorough analysis and interpretation
+    REQUIRED_SECTIONS = ["abstract", "introduction", "methodology", "results", "discussion", "conclusion"]
 
     async def compose_paper(self, research_context: Dict[str, Any]) -> AgentResult:
         start_time = time.time()
@@ -398,10 +428,20 @@ CRITICAL FORMATTING GUIDELINES:
             "introduction": self._get_introduction_prompt(context, topic),
             "methodology": self._get_methodology_prompt(context, topic),
             "results": self._get_results_prompt(context, topic),
+            "discussion": self._get_discussion_prompt(context, topic),
             "conclusion": self._get_conclusion_prompt(context, topic)
         }
         
-        max_tokens_map = {"abstract": 400, "introduction": 800, "methodology": 1000, "results": 800, "conclusion": 600}
+        # Token allocations for 20-30 page comprehensive research papers
+        # Total ~13,500 tokens = ~10,000 words = ~20 pages minimum
+        max_tokens_map = {
+            "abstract": 400,           # ~300 words (expanded abstract)
+            "introduction": 2800,      # ~2100 words (~4-5 pages with extensive lit review)
+            "methodology": 3500,       # ~2600 words (~5 pages with detailed procedures)
+            "results": 2800,           # ~2100 words (~4 pages with comprehensive findings)
+            "discussion": 3200,        # ~2400 words (~5 pages with thorough analysis)
+            "conclusion": 800,         # ~600 words (~1 page)
+        }
         
         response = await self.llm_client.generate(
             prompt=prompts[section_name],
@@ -412,106 +452,211 @@ CRITICAL FORMATTING GUIDELINES:
         return {"content": response.content, "tokens_used": response.tokens_used}
     
     def _get_abstract_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
-        return f"""Write a research proposal abstract (200-250 words) as a SINGLE COHERENT PARAGRAPH.
+        # Extract keywords from topic for consistency
+        keywords = topic.get('keywords', ['research', 'analysis', 'methodology'])
+        if isinstance(keywords, list) and keywords:
+            keywords_str = ', '.join(keywords[:5])
+        else:
+            keywords_str = topic.get('domain', 'research')
+        
+        return f"""Write a comprehensive research proposal abstract (250-350 words) as flowing paragraphs.
 
 Topic: {topic.get('title', 'Research')}
 Domain: {topic.get('domain', '')}
+Keywords to incorporate: {keywords_str}
 
-The abstract must flow as continuous prose covering:
-- Background context (1-2 sentences, present tense)
-- Research gap being addressed (1 sentence)
-- Study objectives (1-2 sentences, future tense with "will")
-- Proposed methodology overview (1-2 sentences, future tense)
-- Expected contributions (1-2 sentences, future tense)
+Write 2-3 paragraphs covering:
+Paragraph 1: Background context, research gap, and significance (100-120 words)
+Paragraph 2: Study objectives, methodology approach, and key research questions (100-120 words)
+Paragraph 3: Expected contributions, implications, and potential impact (50-80 words)
 
-IMPORTANT:
-- Write as ONE paragraph with no line breaks
+CRITICAL RULES:
+- Write as flowing paragraphs with proper transitions
 - Do NOT include a title or "Abstract:" label
-- Do NOT use bullet points or numbered lists
-- Use future tense for proposed work
-- Do NOT mention "findings" or "results" as if completed"""
+- DO NOT include ANY citations [1], [2], etc. in the abstract - IEEE prohibits citations in abstracts
+- The research focus you state here MUST be maintained in ALL other sections
+- Use FUTURE TENSE for proposed work
+- SPELL CHECK: Generative, Field, Artificial, Neural (not Genrative, Feild, etc.)"""
+
+    def _build_citation_reference_block(self, papers: List[Dict[str, Any]], limit: int = 10) -> str:
+        """Format a short numbered reference map for prompts."""
+        if not papers:
+            return ""
+        paper_refs = "\n\nCITATION REFERENCE (keep numbers consistent across ALL sections):\n"
+        for i, p in enumerate(papers[:limit], 1):
+            title = p.get('title', 'Unknown')[:80]
+            paper_refs += f"[{i}] = {title}...\n"
+        if len(papers) > limit:
+            paper_refs += f"Additional sources available beyond [{limit}]"  # hint there are more
+        return paper_refs
 
     def _get_introduction_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
-        return f"""Write the Introduction section (500-700 words) as flowing academic prose.
+        papers = context.get('papers', [])
+        paper_refs = self._build_citation_reference_block(papers, limit=20)
+        
+        return f"""Write a comprehensive Introduction section (2000-2500 words, approximately 4-5 pages) as flowing academic prose with multiple subsections.
 
 Topic: {topic.get('title', 'Research')}
-Literature Context: {context.get('literature_summary', '')[:600]}
-Research Gaps: {self._format_list(context.get('gaps', []))[:400]}
+Literature Context: {context.get('literature_summary', '')[:800]}
+Research Gaps: {self._format_list(context.get('gaps', []))[:500]}{paper_refs}
 
-Write 4-5 paragraphs covering:
-Paragraph 1: Opening hook - why this topic matters now (present tense)
-Paragraph 2: Literature review - key findings from existing research, use citations [1], [2], etc.
-Paragraph 3: Research gap - what remains unknown or unaddressed
-Paragraph 4: Research objectives - what this study will investigate (future tense)
-Paragraph 5: Paper structure - brief roadmap of remaining sections
+Structure your introduction with 8-10 SUBSTANTIAL paragraphs organized into implicit subsections:
 
-IMPORTANT:
-- Write in complete paragraphs, NOT bullet points
-- Use numbered citations [1], [2] when referencing literature
-- Smooth transitions between paragraphs
-- Do NOT repeat content from the abstract
-- Do NOT include section headers within the text"""
+SECTION 1: BACKGROUND & CONTEXT (3-4 paragraphs, ~600-800 words)
+Paragraph 1: Introduce the broad research domain and its current significance. Explain why this field matters today.
+Paragraph 2: Historical development and key milestones in the field. How did we get here? [Include 3-4 citations]
+Paragraph 3: Current state of practice and existing approaches. What methods are currently used? [Include 3-4 citations]
+Paragraph 4: Emerging trends and recent developments in the field. [Include 2-3 citations]
+
+SECTION 2: LITERATURE REVIEW (3-4 paragraphs, ~700-900 words)
+Paragraph 5: Foundational theories and seminal work. What are the theoretical underpinnings? [Include 4-5 citations]
+Paragraph 6: Recent empirical studies and their findings. What has recent research discovered? [Include 4-5 citations]
+Paragraph 7: Methodological approaches used in prior work. How have others tackled similar problems? [Include 3-4 citations]
+Paragraph 8: Critical analysis of existing literature - strengths and limitations. [Include 2-3 citations]
+
+SECTION 3: RESEARCH GAP & OBJECTIVES (2 paragraphs, ~400-500 words)
+Paragraph 9: Specific research gap(s) this study addresses. What remains unknown or inadequately studied? Why is this gap important?
+Paragraph 10: Clear research objectives, questions, and hypotheses. What will this study accomplish? (FUTURE TENSE)
+
+SECTION 4: PAPER ORGANIZATION (1 paragraph, ~200-300 words)
+Paragraph 11: Detailed roadmap of the paper structure and what each section will cover.
+
+CRITICAL RULES:
+- Use at least 15-20 UNIQUE citations distributed across the section
+- Each paragraph should be 150-250 words (substantial and detailed)
+- CITATION ACCURACY: [1] must reference paper [1] above, [2] must reference paper [2], etc.
+- Each paragraph must have DIFFERENT content - NO repetition of ideas
+- Write in complete paragraphs with smooth transitions
+- Include specific examples, statistics, or findings from cited works
+- Demonstrate deep understanding of the literature
+- Do NOT repeat content from the abstract verbatim
+- Spell-check all technical terms carefully"""
 
     def _get_methodology_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
         methodology = context.get("methodology", {})
         meth_text = methodology.get("full_methodology", str(methodology)) if isinstance(methodology, dict) else str(methodology)
-        return f"""Write the Methodology section (600-800 words) as flowing academic prose.
+        papers = context.get('papers', [])
+        paper_refs = self._build_citation_reference_block(papers, limit=20)
+        return f"""Write a comprehensive Methodology section (2500-3000 words, approximately 5 pages) as flowing academic prose with clear subsections.
 
 Topic: {topic.get('title', 'Research')}
-Methodology Framework: {meth_text[:800]}
+Methodology Framework: {meth_text[:1000]}
+Reference Map: Cite methodological precedents from the sources below to justify design choices.{paper_refs}
 
-Write 5-6 paragraphs covering:
-Paragraph 1: Research design - type of study and rationale
-Paragraph 2: Participants/Data sources - sampling strategy, inclusion criteria
-Paragraph 3: Data collection - instruments, procedures to be used
-Paragraph 4: Data analysis - analytical techniques to be employed
-Paragraph 5: Validity and reliability - how quality will be ensured
-Paragraph 6: Ethical considerations - IRB approval, consent, data protection
+Structure with 10-12 DETAILED paragraphs organized into implicit subsections:
 
-IMPORTANT:
-- Use FUTURE TENSE throughout ("will be collected", "will employ")
-- Write in complete paragraphs, NOT bullet points or numbered lists
-- Be specific about methods, not vague
-- Do NOT include subsection headers like "3.1 Research Design"
-- This is a PROPOSAL - describe what WILL BE done"""
+SECTION 1: RESEARCH DESIGN & APPROACH (2-3 paragraphs, ~500-700 words)
+Paragraph 1: Overall research design and philosophical approach. Explain the research paradigm and why it's appropriate for this study. [Include 2-3 citations for methodological precedents]
+Paragraph 2: Study type (experimental, observational, computational, etc.) and detailed rationale. Why is this design optimal for answering the research questions?
+Paragraph 3: Research framework, theoretical model, or architectural design that will guide the study.
+
+SECTION 2: PARTICIPANTS/DATA SOURCES (2 paragraphs, ~400-600 words)
+Paragraph 4: Population, sampling strategy, and sample size determination. For deep learning: 5,000-50,000 samples; for surveys: 300-1,000 participants. Include power analysis or data requirements justification. [Cite similar studies for sample size rationale]
+Paragraph 5: Inclusion/exclusion criteria, recruitment procedures, and data source specifications. Be specific about where and how data will be obtained.
+
+SECTION 3: DATA COLLECTION PROCEDURES (2-3 paragraphs, ~500-700 words)
+Paragraph 6: Detailed instruments, tools, and measurement procedures. Name specific software, hardware, questionnaires, or protocols.
+Paragraph 7: Variables to be measured or collected - independent, dependent, control variables. Define operational definitions.
+Paragraph 8: Data collection timeline, procedures, and quality control measures. How will data integrity be ensured?
+
+SECTION 4: DATA ANALYSIS METHODS (2-3 paragraphs, ~600-800 words)
+Paragraph 9: Statistical or computational analysis techniques. Name SPECIFIC tests, algorithms, or models (e.g., "mixed-effects ANOVA", "U-Net architecture with ResNet-50 backbone", "latent Dirichlet allocation"). [Include 3-4 citations for analytical methods]
+Paragraph 10: Analysis software and computational resources. Specify versions, settings, and configurations.
+Paragraph 11: Performance metrics and evaluation criteria (e.g., Dice Similarity Coefficient, F1-score, RMSE, Cohen's kappa). How will success be measured?
+
+SECTION 5: VALIDITY & RELIABILITY (1-2 paragraphs, ~300-400 words)
+Paragraph 12: Internal and external validity measures. How will threats to validity be addressed?
+Paragraph 13 (if needed): Reliability measures and quality assurance procedures.
+
+SECTION 6: ETHICAL CONSIDERATIONS (1 paragraph, ~200-300 words)
+Paragraph 14: State "Ethical approval will be obtained from the Institutional Review Board prior to data collection." Discuss informed consent, data privacy, confidentiality, and risk mitigation.
+
+CRITICAL RULES:
+- FOCUS COHERENCE: Methodology must match the research described in Abstract
+- Use FUTURE TENSE: "will be collected", "will employ", "will be analyzed"
+- Include at least 8-10 citations distributed across the section
+- Each paragraph should be 200-300 words (detailed and specific)
+- NO PLACEHOLDERS: Never write "[Insert IRB Number]"
+- Use IEEE citations [1], [2] ONLY - NEVER use (Author, Year) format
+- Write in paragraphs, NOT bullet points
+- Be specific with ALL methodological details
+- SPELL CHECK all technical terms"""
 
     def _get_results_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
-        return f"""Write the Expected Outcomes section (400-500 words) as flowing academic prose.
+        papers = context.get('papers', [])
+        paper_refs = self._build_citation_reference_block(papers, limit=20)
+        return f"""Write a comprehensive Results section (2000-2500 words, approximately 4 pages) as flowing academic prose with detailed subsections.
 
 Topic: {topic.get('title', 'Research')}
-Research Hypotheses: {self._format_hypotheses(context.get('hypotheses', []))[:500]}
+Hypotheses: {self._format_hypotheses(context.get('hypotheses', []))[:600]}
+Methodology Reference: {context.get('methodology', {})}{paper_refs}
 
-Write 3-4 paragraphs covering:
-Paragraph 1: Expected findings - what results are anticipated based on hypotheses
-Paragraph 2: Theoretical implications - how findings will contribute to existing theory
-Paragraph 3: Practical applications - potential real-world impact and applications
-Paragraph 4: Conceptual framework - the model or framework being proposed
+Structure with 8-10 DETAILED paragraphs organized into implicit subsections:
 
-IMPORTANT:
-- Use FUTURE TENSE throughout ("It is anticipated that...", "Results will likely show...")
-- Do NOT present actual data or completed results
-- Write in complete paragraphs, NOT bullet points
-- This describes what you EXPECT to discover, not what you found
-- Do NOT include subsection headers"""
+SECTION 1: OVERVIEW OF FINDINGS (1 paragraph, ~250-300 words)
+Paragraph 1: Brief summary of the main anticipated results and how they address the research questions. What will be the overarching story the data tells?
+
+SECTION 2: PRIMARY FINDINGS (3-4 paragraphs, ~700-900 words)
+Paragraph 2: FIRST MAJOR FINDING - Describe the primary expected result in detail. Present specific quantitative metrics with realistic ranges (e.g., "accuracy of 87.3±2.1%", "p < 0.001", "Dice coefficient of 0.84"). [Include 2-3 citations for comparison to prior benchmarks]
+Paragraph 3: DETAILED BREAKDOWN - Break down the primary finding by subgroups, conditions, or categories. How will results vary across different segments?
+Paragraph 4: SECOND MAJOR FINDING - Present the next most important expected result with detailed metrics and statistical analysis.
+Paragraph 5: QUANTITATIVE ANALYSIS - Present expected statistical tests, confidence intervals, effect sizes, and significance levels. Be specific about tests (e.g., "paired t-test: t(49) = 4.23, p < 0.001, Cohen's d = 0.86").
+
+SECTION 3: COMPARATIVE ANALYSIS (2-3 paragraphs, ~500-700 words)
+Paragraph 6: BASELINE COMPARISONS - How will the proposed approach compare to existing baseline methods? Present expected performance differentials with specific metrics. [Include 3-4 citations to methods being compared]
+Paragraph 7: BENCHMARKING RESULTS - Compare to state-of-the-art approaches from the literature. Which methods will the proposed approach outperform and by how much?
+Paragraph 8 (if applicable): ABLATION STUDIES or SENSITIVITY ANALYSIS - What will happen when key components are modified? How robust will the results be?
+
+SECTION 4: SECONDARY FINDINGS (2-3 paragraphs, ~400-600 words)
+Paragraph 9: ADDITIONAL PATTERNS - Describe secondary trends, correlations, or insights expected from the data. What other interesting discoveries will emerge?
+Paragraph 10: UNEXPECTED OBSERVATIONS - Discuss any anticipated edge cases, outliers, contradictions, or surprising patterns. Where might the approach face challenges?
+Paragraph 11 (if needed): QUALITATIVE INSIGHTS - For applicable studies, describe expected qualitative patterns, themes, or observations.
+
+CRITICAL RULES:
+- FUTURE TENSE: "The analysis will reveal...", "Results will demonstrate...", "We expect to observe..."
+- Include at least 8-10 unique citations comparing to prior work
+- Each paragraph should be 200-300 words with substantial detail
+- Include REALISTIC quantitative metrics appropriate to the domain (accuracy, precision, recall, F1, AUC, p-values, Dice scores, RMSE, R-squared, correlation coefficients, etc.)
+- Present expected statistical test results with proper notation
+- FOCUS COHERENCE: Results must directly address hypotheses and align with methodology
+- Write in paragraphs, NOT bullet points or tables
+- Use numbered citations [1], [2] per IEEE format
+- NO PLACEHOLDERS or "Figure X shows" - describe patterns in prose
+- Be specific about performance improvements (e.g., "15% reduction in error rate compared to [1]")"""
 
     def _get_conclusion_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
-        return f"""Write the Conclusion section (300-400 words) as flowing academic prose.
+        papers = context.get('papers', [])
+        paper_refs = self._build_citation_reference_block(papers, limit=10)
+        return f"""Write a comprehensive Conclusion section (600-800 words, approximately 1.5 pages) as flowing academic prose.
 
 Topic: {topic.get('title', 'Research')}
-Gaps Being Addressed: {self._format_list(context.get('gaps', []))[:300]}
+Gaps Being Addressed: {self._format_list(context.get('gaps', []))[:300]}{paper_refs}
 
-Write 3-4 paragraphs covering:
-Paragraph 1: Summary - brief recap of the proposed research and its objectives
-Paragraph 2: Expected contributions - how this research will advance the field (future tense)
-Paragraph 3: Limitations - acknowledged constraints of the proposed study
-Paragraph 4: Future directions and closing - how this work could lead to further research
+Write 5-6 SUBSTANTIAL paragraphs:
 
-IMPORTANT:
-- Use future tense for proposed contributions
-- Be realistic and honest about limitations
-- Write in complete paragraphs, NOT bullet points
-- End with a strong closing statement on significance
-- Do NOT include subsection headers"""
+Paragraph 1: RESEARCH RECAP (120-150 words) - Begin by restating the research problem and objectives. Briefly remind readers what this study set out to accomplish and why it matters. Set the stage for summarizing contributions.
+
+Paragraph 2: SUMMARY OF APPROACH (120-150 words) - Concisely describe the methodological approach taken without excessive detail. Highlight what made this approach novel or appropriate for addressing the research questions.
+
+Paragraph 3: KEY CONTRIBUTIONS & FINDINGS (150-200 words) - Enumerate the main expected contributions this research will make. What are the 3-5 most important takeaways? Be specific about anticipated findings and their significance.
+
+Paragraph 4: THEORETICAL SIGNIFICANCE (100-150 words) - Explain how this work will advance theoretical understanding in the domain. What conceptual insights will emerge? How will this reshape thinking about the phenomenon? [Include 1-2 citations]
+
+Paragraph 5: PRACTICAL IMPLICATIONS (100-150 words) - Discuss expected real-world impact and applications. Who will benefit from these findings and how? Connect research to practical problems in industry, healthcare, education, policy, or society.
+
+Paragraph 6: CLOSING VISION (100-150 words) - End with a forward-looking perspective. How will this research open new directions? What doors will it open? Paint a vision of how the field will evolve based on these contributions. End on an aspirational note about the potential impact.
+
+CRITICAL RULES:
+- FUTURE TENSE: "This study will...", "The research is expected to...", "Findings will contribute..."
+- Include 2-3 citations when discussing significance relative to existing work
+- NO detailed results, statistics, or methodology repetition
+- Each paragraph should be 100-200 words (substantial and meaningful)
+- Keep focused on the research stated in Abstract - do NOT introduce new topics
+- Write in flowing paragraphs, NOT bullet points
+- Balance between summarizing what was done and emphasizing impact
+- End on a strong, inspirational note about future potential
+- Spell-check all terms
+- Demonstrate the work's value and significance clearly"""
 
     def _format_list(self, items: List[str]) -> str:
         if not items:
@@ -523,6 +668,52 @@ IMPORTANT:
             return "None specified."
         return "\n".join([f"- {h.get('title', 'H')}: {h.get('description', '')[:80]}" for h in hypotheses[:5]])
 
+    def _get_discussion_prompt(self, context: Dict[str, Any], topic: Dict[str, Any]) -> str:
+        papers = context.get('papers', [])
+        paper_refs = self._build_citation_reference_block(papers, limit=20)
+        return f"""Write a comprehensive Discussion section (2500-3000 words, approximately 5 pages) as flowing academic prose with detailed analysis.
+
+Topic: {topic.get('title', 'Research')}
+Research Gaps: {self._format_list(context.get('gaps', []))[:300]}
+Hypotheses: {self._format_hypotheses(context.get('hypotheses', []))[:600]}{paper_refs}
+
+Structure with 10-12 DETAILED paragraphs organized into implicit subsections:
+
+SECTION 1: INTERPRETATION OF FINDINGS (3-4 paragraphs, ~700-900 words)
+Paragraph 1: OVERVIEW - Restate the main expected findings briefly, then provide initial interpretation. What will the results fundamentally reveal about the research problem?
+Paragraph 2: PRIMARY FINDING INTERPRETATION - Deep dive into what the main result means theoretically and practically. Why will this finding emerge? What mechanisms or principles explain it? [Include 3-4 citations to theoretical frameworks]
+Paragraph 3: SECONDARY FINDINGS INTERPRETATION - Analyze what the additional results suggest. How do multiple findings interconnect?
+Paragraph 4: UNEXPECTED PATTERNS - Discuss the implications of surprising or counterintuitive findings. What do these reveal about the phenomenon under study?
+
+SECTION 2: COMPARISON WITH LITERATURE (3 paragraphs, ~600-800 words)
+Paragraph 5: ALIGNMENT WITH PRIOR WORK - Discuss how findings will support, extend, or validate existing literature. Which prior studies [1], [2], [3] will these results corroborate? Why is this convergence important? [Include 4-5 citations]
+Paragraph 6: DIVERGENCE FROM LITERATURE - Where will results contradict or challenge existing findings? What could explain these discrepancies? [Include 3-4 citations to contrasting work]
+Paragraph 7: CONTRIBUTION TO DEBATE - How will this work resolve existing controversies or advance ongoing debates in the field? Position findings within broader scholarly discourse. [Include 2-3 citations]
+
+SECTION 3: THEORETICAL & PRACTICAL IMPLICATIONS (2-3 paragraphs, ~500-700 words)
+Paragraph 8: THEORETICAL CONTRIBUTIONS - What new theoretical insights will emerge? How will this advance conceptual understanding of the phenomenon? Will new models or frameworks be needed?
+Paragraph 9: PRACTICAL APPLICATIONS - Describe specific real-world uses of these findings. Who will benefit and how? Be concrete about applications in industry, healthcare, education, policy, etc.
+Paragraph 10 (if needed): METHODOLOGICAL CONTRIBUTIONS - How will the methodology itself advance the field? What new techniques or approaches will be demonstrated?
+
+SECTION 4: LIMITATIONS (2 paragraphs, ~400-600 words)
+Paragraph 11: METHODOLOGICAL LIMITATIONS - Acknowledge constraints in study design, sample size, measurement instruments, generalizability, or analytical approaches. Be specific but not overly self-critical.
+Paragraph 12: SCOPE AND BOUNDARY CONDITIONS - Discuss contexts or conditions where findings may not apply. What are the edges of generalizability?
+
+SECTION 5: FUTURE RESEARCH DIRECTIONS (1-2 paragraphs, ~300-500 words)
+Paragraph 13: IMMEDIATE NEXT STEPS - Suggest 3-5 specific follow-up studies that directly build on this work. Be concrete about what should be investigated next.
+Paragraph 14 (if needed): LONG-TERM RESEARCH AGENDA - Outline broader questions or directions for the field that stem from these findings.
+
+CRITICAL RULES:
+- FUTURE/CONDITIONAL TENSE: "The findings will suggest...", "This would indicate...", "Results are expected to demonstrate..."
+- Include at least 12-15 unique citations throughout the discussion
+- Each paragraph should be 200-300 words with deep analysis
+- Do NOT simply repeat results - provide rich INTERPRETATION of their meaning
+- Connect findings to broader theoretical frameworks and literature
+- Balance discussion of strengths and limitations
+- Be specific about implications rather than vague statements
+- FOCUS COHERENCE: Discussion must address the same research focus as Abstract and other sections
+- Write in complete paragraphs, NOT bullet points
+- Use numbered citations [1], [2] per IEEE format"""
 
 
 class AgenticResearchSwarm:
@@ -689,6 +880,7 @@ class AgenticResearchSwarm:
         )
         results["literature"] = lit_result.output
         results["literature_summary"] = lit_result.output.get("summary", "")
+        results["papers"] = lit_result.output.get("papers", [])  # Include papers for citation sync
         
         # Stage 2: Gap Analysis
         gap_agent = GapAnalysisAgent(llm_client, orchestrator)
